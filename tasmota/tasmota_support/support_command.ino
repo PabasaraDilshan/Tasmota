@@ -384,7 +384,6 @@ void CommandHandler(char* topicBuf, char* dataBuf, uint32_t data_len) {
       break;
     }
   }
-
   char stemp1[TOPSZ];
   GetFallbackTopic_P(stemp1, "");  // Full Fallback topic = cmnd/DVES_xxxxxxxx_fb/
   TasmotaGlobal.fallback_topic_flag = (!strncmp(topicBuf, stemp1, strlen(stemp1)));

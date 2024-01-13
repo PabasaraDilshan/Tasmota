@@ -476,6 +476,7 @@ void MqttSubscribeLib(const char *topic) {
   String realTopicString = "devices/" + String(SettingsText(SET_MQTT_CLIENT));
   realTopicString += "/messages/devicebound/#";
   MqttClient.subscribe(realTopicString.c_str());
+  MqttClient.subscribe("$iothub/methods/POST/#");
   SettingsUpdateText(SET_MQTT_FULLTOPIC, SettingsText(SET_MQTT_CLIENT));
   SettingsUpdateText(SET_MQTT_TOPIC, SettingsText(SET_MQTT_CLIENT));
 #else
@@ -556,7 +557,8 @@ bool MqttPublishLib(const char* topic, const uint8_t* payload, unsigned int plen
 
 void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len) {
   SHOW_FREE_MEM(PSTR("MqttDataHandler"));
-
+  // Serial.println(mqtt_topic);
+  // Serial.println((char*)mqtt_data);
   // Do not allow more data than would be feasable within stack space
   if (data_len >= MQTT_MAX_PACKET_SIZE) { return; }
 
@@ -568,7 +570,7 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
       return;
     }
   }
-
+  mqtt_data[data_len] = 0;
 #ifdef USE_MQTT_FILE
   FMqtt.topic_size = strlen(mqtt_topic);
 #endif  // USE_MQTT_FILE
@@ -577,26 +579,64 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
 
   char topic[TOPSZ];
 #ifdef USE_MQTT_AZURE_IOT
-  // for Azure, we read the topic from the property of the message
-  String fullTopicString = String(mqtt_topic);
-  String toppicUpper = fullTopicString;
-  toppicUpper.toUpperCase();
-  int startOfTopic = toppicUpper.indexOf("TOPIC=");
-  if (startOfTopic == -1){
-    AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Azure IoT message without the property topic."));
-    return;
-  }
-  String newTopic = fullTopicString.substring(startOfTopic + 6);
-  newTopic.replace("%2F", "/");
-  if (newTopic.indexOf("/") == -1){
-    AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Invalid Topic %s"), newTopic.c_str());
-    return;
-  }
-  strlcpy(topic, newTopic.c_str(), sizeof(topic));
+  #ifdef USE_AZURE_DIRECT_METHOD
+      String fullTopicString = String(mqtt_topic);
+      // String toppicUpper = fullTopicString;
+      
+      // //AddLog(LOG_LEVEL_ERROR,fullTopicString,"" );
+      // toppicUpper.toUpperCase();
+      int startOfMethod = fullTopicString.indexOf("methods/POST");
+      int endofMethod = fullTopicString.indexOf("/?$rid");
+      String req_id = fullTopicString.substring(endofMethod + 7);
+      if (startOfMethod == -1){
+        AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Azure IoT message without method."));
+        return;
+      }
+      String newMethod = fullTopicString.substring(startOfMethod + 12,endofMethod);
+      Serial.println(newMethod);
+      strlcpy(topic, newMethod.c_str(), sizeof(topic));
+      
+      JsonParser mqtt_json_data((char*) mqtt_data);
+
+      JsonParserObject message_object = mqtt_json_data.getRootObject();
+      String mqtt_data_str= message_object.getStr("state","");
+      //mqtt_data_str.toCharArray(reinterpret_cast<char*>(mqtt_data),mqtt_data_str.length() );
+      //strlcpy(mqtt_data, stateVal.c_str(), sizeof(mqtt_data));
+      data_len = mqtt_data_str.length();
+      strncpy(reinterpret_cast<char*>(mqtt_data),mqtt_data_str.c_str(),data_len);
+      mqtt_data[data_len] = 0;
+  
+      Serial.println((char*)mqtt_data);
+
+      // MqttPublishPayload(response_topic.c_str());
+
+  #else
+      // for Azure, we read the topic from the property of the message
+      String fullTopicString = String(mqtt_topic);
+      String toppicUpper = fullTopicString;
+      
+      //AddLog(LOG_LEVEL_ERROR,fullTopicString,"" );
+      toppicUpper.toUpperCase();
+      int startOfTopic = toppicUpper.indexOf("TOPIC=");
+      if (startOfTopic == -1){
+        AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Azure IoT message without the property topic."));
+        return;
+      }
+    
+      String newTopic = fullTopicString.substring(startOfTopic + 6);
+      newTopic.replace("%2F", "/");
+      if (newTopic.indexOf("/") == -1){
+        AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Invalid Topic %s"), newTopic.c_str());
+        return;
+      }
+      AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Test"),newTopic.c_str());
+
+      strlcpy(topic, newTopic.c_str(), sizeof(topic));
+    #endif
 #else
   strlcpy(topic, mqtt_topic, sizeof(topic));
 #endif  // USE_MQTT_AZURE_IOT
-  mqtt_data[data_len] = 0;
+
 
   if (Mqtt.disable_logging) {
     TasmotaGlobal.masterlog_level = LOG_LEVEL_DEBUG_MORE;  // Hide logging
@@ -609,8 +649,12 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
   }
 #endif  // ESP32
 #endif  // USE_TASMESH
-
+  // Serial.println(topic);
+  // Serial.println((char*)mqtt_data);
   // MQTT pre-processing
+  Serial.println(data_len);
+  Serial.println(topic);
+  Serial.println((char*)mqtt_data);
   XdrvMailbox.index = strlen(topic);
   XdrvMailbox.data_len = data_len;
   XdrvMailbox.topic = topic;
@@ -624,6 +668,12 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
   if (Mqtt.disable_logging) {
     TasmotaGlobal.masterlog_level = LOG_LEVEL_NONE;  // Enable logging
   }
+  #ifdef USE_AZURE_DIRECT_METHOD
+    String response_topic = "$iothub/methods/res/200/?$rid=" + req_id;
+    Serial.println(response_topic);
+    String payload = "{\"status\": \"success\"}";
+      MqttClient.publish(response_topic.c_str(),payload.c_str());
+  #endif
 }
 
 /*********************************************************************************************/
