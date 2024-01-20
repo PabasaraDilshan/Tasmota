@@ -477,6 +477,7 @@ void MqttSubscribeLib(const char *topic) {
   realTopicString += "/messages/devicebound/#";
   MqttClient.subscribe(realTopicString.c_str());
   MqttClient.subscribe("$iothub/methods/POST/#");
+  //MqttClient.subscribe("$iothub/twin/res/#");
   SettingsUpdateText(SET_MQTT_FULLTOPIC, SettingsText(SET_MQTT_CLIENT));
   SettingsUpdateText(SET_MQTT_TOPIC, SettingsText(SET_MQTT_CLIENT));
 #else
@@ -583,8 +584,11 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
       String fullTopicString = String(mqtt_topic);
       // String toppicUpper = fullTopicString;
       
-      // //AddLog(LOG_LEVEL_ERROR,fullTopicString,"" );
+      //AddLog(LOG_LEVEL_ERROR,fullTopicString,"" );
       // toppicUpper.toUpperCase();
+      // Serial.println(fullTopicString);
+     // Serial.println(TasmotaGlobal.power);
+     
       int startOfMethod = fullTopicString.indexOf("methods/POST");
       int endofMethod = fullTopicString.indexOf("/?$rid");
       String req_id = fullTopicString.substring(endofMethod + 7);
@@ -593,7 +597,7 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
         return;
       }
       String newMethod = fullTopicString.substring(startOfMethod + 12,endofMethod);
-      Serial.println(newMethod);
+      //Serial.println(newMethod);
       strlcpy(topic, newMethod.c_str(), sizeof(topic));
       
       JsonParser mqtt_json_data((char*) mqtt_data);
@@ -606,7 +610,7 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
       strncpy(reinterpret_cast<char*>(mqtt_data),mqtt_data_str.c_str(),data_len);
       mqtt_data[data_len] = 0;
   
-      Serial.println((char*)mqtt_data);
+      //Serial.println((char*)mqtt_data);
 
       // MqttPublishPayload(response_topic.c_str());
 
@@ -652,9 +656,9 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
   // Serial.println(topic);
   // Serial.println((char*)mqtt_data);
   // MQTT pre-processing
-  Serial.println(data_len);
-  Serial.println(topic);
-  Serial.println((char*)mqtt_data);
+  // Serial.println(data_len);
+  // Serial.println(topic);
+  // Serial.println((char*)mqtt_data);
   XdrvMailbox.index = strlen(topic);
   XdrvMailbox.data_len = data_len;
   XdrvMailbox.topic = topic;
@@ -670,9 +674,15 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
   }
   #ifdef USE_AZURE_DIRECT_METHOD
     String response_topic = "$iothub/methods/res/200/?$rid=" + req_id;
-    Serial.println(response_topic);
+    //Serial.println(response_topic);
     String payload = "{\"status\": \"success\"}";
       MqttClient.publish(response_topic.c_str(),payload.c_str());
+      AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Global state %d"), TasmotaGlobal.power);
+      String twin_topic = "$iothub/twin/PATCH/properties/reported/?$rid=10";
+      String twin_payload = "{\"state\":\""+String(TasmotaGlobal.power?"ON":"OFF")+"\"}";
+       MqttClient.publish(twin_topic.c_str(),twin_payload.c_str());
+
+
   #endif
 }
 
