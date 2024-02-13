@@ -673,6 +673,7 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
     TasmotaGlobal.masterlog_level = LOG_LEVEL_NONE;  // Enable logging
   }
   #ifdef USE_AZURE_DIRECT_METHOD
+    //OVADMS
     String response_topic = "$iothub/methods/res/200/?$rid=" + req_id;
     //Serial.println(response_topic);
     String payload = "{\"status\": \"success\"}";
@@ -732,7 +733,8 @@ void MqttPublishPayload(const char* topic, const char* payload, uint32_t binary_
   }
 
   // To lower heap usage the payload is not copied to the heap but used directly
-  String log_data_topic;                                 // 20210420 Moved to heap to solve tight stack resulting in exception 2
+  String log_data_topic;       
+  //OVADMS                          // 20210420 Moved to heap to solve tight stack resulting in exception 2
   if (Settings->flag.mqtt_enabled && MqttPublishLib(topic, (const uint8_t*)payload, binary_length, retained)) {  // SetOption3 - Enable MQTT
 #ifdef USE_TASMESH
     log_data_topic = (MESHroleNode()) ? F("MSH: ") : F(D_LOG_MQTT);  // MSH: or MQT:
@@ -904,6 +906,19 @@ void MqttPublishPowerState(uint32_t device) {
     }
   } else {
 #endif  // USE_SONOFF_IFAN
+    //OVADMS
+  #ifdef USE_AZURE_DIRECT_METHOD
+    //OVADMS
+    
+  // Convert uint32_t to IPAddress
+      IPAddress ipAddress(WiFi.localIP());
+      AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Global state %d"), TasmotaGlobal.power);
+      String twin_topic = "$iothub/twin/PATCH/properties/reported/?$rid=10";
+      String twin_payload = "{\"state\":\""+String(TasmotaGlobal.power?"ON":"OFF")+"\",\"ip\":\""+ipAddress.toString()+"\"}";
+      MqttClient.publish(twin_topic.c_str(),twin_payload.c_str());
+
+
+  #endif
     GetPowerDevice(scommand, device, sizeof(scommand), Settings->flag.device_index_enable);           // SetOption26 - Switch between POWER or POWER1
     GetTopic_P(stopic, STAT, TasmotaGlobal.mqtt_topic, (Settings->flag.mqtt_response) ? scommand : S_RSLT_RESULT);  // SetOption4 - Switch between MQTT RESULT or COMMAND
     Response_P(S_JSON_COMMAND_SVALUE, scommand, GetStateText(bitRead(TasmotaGlobal.power, device -1)));
@@ -2083,7 +2098,7 @@ bool Xdrv02(uint32_t function)
       case FUNC_WEB_ADD_BUTTON:
         WSContentSend_P(HTTP_BTN_MENU_MQTT);
         break;
-      case FUNC_WEB_ADD_HANDLER:
+            case FUNC_WEB_ADD_HANDLER:
         WebServer_on(PSTR("/" WEB_HANDLE_MQTT), HandleMqttConfiguration);
         break;
 #endif  // USE_WEBSERVER
