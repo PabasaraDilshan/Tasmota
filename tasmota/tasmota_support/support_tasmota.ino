@@ -1541,6 +1541,10 @@ void Every250mSeconds(void)
           SettingsUpdateText(SET_MQTT_USER, storage_mqttuser);
           SettingsUpdateText(SET_MQTT_PWD, storage_mqttpwd);
           SettingsUpdateText(SET_MQTT_TOPIC, storage_mqtttopic);
+          #ifdef USE_MQTT_AZURE_IOT
+          SettingsUpdateText(SET_MQTT_FULLTOPIC, storage_mqtttopic);
+          SettingsUpdateText(SET_MQTT_CLIENT, storage_mqttuser);
+          #endif
           Settings->mqtt_port = mqtt_port;
         }
 

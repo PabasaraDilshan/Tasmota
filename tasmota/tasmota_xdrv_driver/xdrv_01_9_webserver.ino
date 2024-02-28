@@ -2440,6 +2440,7 @@ void HandleInformation(void) {
   }
   if (Settings->flag4.network_wifi) {
     int32_t rssi = WiFi.RSSI();
+    
     WSContentSend_P(PSTR("}1" D_AP "%d " D_INFORMATION "}2" D_SSID " %s<br>" D_RSSI " %d%%, %d dBm<br>" D_MODE " 11%c<br>" D_CHANNEL " %d<br>" D_BSSID " %s"), 
       Settings->sta_active +1,
       SettingsTextEscaped(SET_STASSID1 + Settings->sta_active).c_str(),

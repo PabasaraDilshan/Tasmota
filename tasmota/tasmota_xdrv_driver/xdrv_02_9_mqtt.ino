@@ -603,16 +603,12 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
       JsonParser mqtt_json_data((char*) mqtt_data);
 
       JsonParserObject message_object = mqtt_json_data.getRootObject();
+
       String mqtt_data_str= message_object.getStr("state","");
-      //mqtt_data_str.toCharArray(reinterpret_cast<char*>(mqtt_data),mqtt_data_str.length() );
-      //strlcpy(mqtt_data, stateVal.c_str(), sizeof(mqtt_data));
       data_len = mqtt_data_str.length();
       strncpy(reinterpret_cast<char*>(mqtt_data),mqtt_data_str.c_str(),data_len);
       mqtt_data[data_len] = 0;
-  
-      //Serial.println((char*)mqtt_data);
 
-      // MqttPublishPayload(response_topic.c_str());
 
   #else
       // for Azure, we read the topic from the property of the message
@@ -912,9 +908,10 @@ void MqttPublishPowerState(uint32_t device) {
     
   // Convert uint32_t to IPAddress
       IPAddress ipAddress(WiFi.localIP());
+      int32_t rssi = WiFi.RSSI();
       AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_MQTT "Global state %d"), TasmotaGlobal.power);
       String twin_topic = "$iothub/twin/PATCH/properties/reported/?$rid=10";
-      String twin_payload = "{\"state\":\""+String(TasmotaGlobal.power?"ON":"OFF")+"\",\"ip\":\""+ipAddress.toString()+"\"}";
+      String twin_payload = "{\"state\":\""+String(TasmotaGlobal.power?"ON":"OFF")+"\",\"ip\":\""+ipAddress.toString()+"\",\"rssi\":\""+String(rssi)+"\",\"ssid\":\""+SettingsTextEscaped(SET_STASSID1 + Settings->sta_active)+"\",\"version\":\""+String(TasmotaGlobal.version)+"\",\"hostname\":\""+String(TasmotaGlobal.hostname)+"\"}";
       MqttClient.publish(twin_topic.c_str(),twin_payload.c_str());
 
 
