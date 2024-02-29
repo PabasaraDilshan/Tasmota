@@ -1542,9 +1542,11 @@ void Every250mSeconds(void)
           SettingsUpdateText(SET_MQTT_PWD, storage_mqttpwd);
           SettingsUpdateText(SET_MQTT_TOPIC, storage_mqtttopic);
           #ifdef USE_MQTT_AZURE_IOT
+          // Oversight fix
           SettingsUpdateText(SET_MQTT_FULLTOPIC, storage_mqtttopic);
           SettingsUpdateText(SET_MQTT_CLIENT, storage_mqttuser);
-          #endif
+          SettingsUpdateText(SET_HOSTNAME, storage_mqtttopic);
+                    #endif
           Settings->mqtt_port = mqtt_port;
         }
 
