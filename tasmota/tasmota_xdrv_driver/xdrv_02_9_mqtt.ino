@@ -599,7 +599,7 @@ void MqttDataHandler(char* mqtt_topic, uint8_t* mqtt_data, unsigned int data_len
       String newMethod = fullTopicString.substring(startOfMethod + 12,endofMethod);
       //Serial.println(newMethod);
       strlcpy(topic, newMethod.c_str(), sizeof(topic));
-      
+      mqtt_data[data_len] = 0;
       JsonParser mqtt_json_data((char*) mqtt_data);
 
       JsonParserObject message_object = mqtt_json_data.getRootObject();
