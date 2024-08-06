@@ -87,9 +87,9 @@ Examples :
 // !!! Remember that your changes GOES AT THE BOTTOM OF THIS FILE right before the last #endif !!!
 */
 
-#ifndef USE_MQTT_TLS
-#define USE_MQTT_TLS
-#endif
+// #ifndef USE_MQTT_TLS
+// #define USE_MQTT_TLS
+// #endif
 #define USE_MQTT_AZURE_IOT
 
 #define USE_AZURE_DIRECT_METHOD
